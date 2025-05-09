@@ -18,14 +18,20 @@ theme_set(theme_bw())
 
 
 ```{r, include=FALSE}
-data <- read.csv("./data-complete.csv")
+data <- read.csv("complete-data.csv")
 
-data <- data %>% mutate(time = as.POSIXct(time_of_day, format = "%H:%M:%S %p"),
-                        type = if_else(card_entry == "N/A", "cash", "card"),
-                        tip = if_else(card_tip == "N/A", -1, as.double(card_tip)),
-                        tip_proportion = tip/total_money)
-only_card_data <- data %>% filter(type == "card")
+data <- data %>% mutate(time = as.POSIXct(time, format = "%H:%M:%S"),
+                        age = factor(age, levels = c("Young", "Middle", "Old")),
+                        payment_type = if_else(payment_method == "Cash", "cash", "card"),
+                        tip = if_else(payment_method == "Cash", -1, as.double(tip)),
+                        tip_proportion = tip/total_price)
+
+
+only_card_data <- data %>% filter(payment_type == "card")
 
 head(data)
+
+table(data$age, data$payment_type)
 ```
+
 
