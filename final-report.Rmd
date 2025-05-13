@@ -1,23 +1,32 @@
 ---
-title: "Final Project"
-author: "Judd Brau, Alex Cyphers, Nathan Starhill"
-date: "`r Sys.Date()`"
+title: | 
+  | Donuts and Data Analysis
+  | Finding business insights for Grin City Bakery
+author: "Judd Brau, Alex Cyphers, and Nathan Starhill"
+date: "`r format(Sys.Date(), '%B %d, %Y')`"
 output: pdf_document
 ---
 
 ```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE, warning=FALSE)
-
-library(ggplot2)
-library(dplyr)
-theme_set(theme_bw())
+knitr::opts_chunk$set(echo = FALSE,
+                      warning=FALSE,
+                      message = FALSE,
+                      fig.align = 'center', 
+                      fig.width = 6,
+                      fig.height = 3)
 ```
 
+```{r}
+library(ggplot2)
+library(dplyr)
+## Packages for HTML/PDF tables in markdown
+# install.packages(c("knitr", "kableExtra"))
+library(knitr)
+library(kableExtra)
+library(formattable) 
 
-# Final Report 
+theme_set(theme_bw())
 
-
-```{r, include=FALSE}
 data <- read.csv("complete-data.csv")
 
 data <- data %>% mutate(time = as.POSIXct(time, format = "%H:%M:%S"),
@@ -28,10 +37,72 @@ data <- data %>% mutate(time = as.POSIXct(time, format = "%H:%M:%S"),
 
 
 only_card_data <- data %>% filter(payment_type == "card")
-
-head(data)
-
-table(data$age, data$payment_type)
 ```
+
+
+# Introduction
+Nathan works at the Grin City bakery in town, and he always wondered what affects customers’ choices? What motivates someone to come in at a certain time and spend any given amount of money? Our overarching research question is this: Can we find any insights that we could pass on to the owners of Grin City Bakery to improve sales? Specifically, is age or gender associated with how people pay and or how much people purchase/tip? Looking at an initial analysis of age and purchase type in Table 1, we found that age was a pretty good explanatory variable for using cash vs card, with young people using credit cards much more, and old people using cash more. 
+
+```{r}
+tab <- with(data, table(age, payment_type))
+kab <- kable(tab, caption = "Age and Payment Type Used")
+kable_styling(kab, full_width = FALSE)
+```
+
+
+# Methods
+
+On two separate Fridays from 6:45 to 8:15, Alex sat at a table at Grin City Bakery near the register and recorded various variables of customers' demographics including age (young, middle aged, or old) and gender. While these observations were somewhat subjective, we did so as to stay out of customers’ way. We also noted whether customers asked any questions before ordering – which we coded as “order time”. Alex also recorded the price of their order - which we used to cross reference our in person data to more detailed data of the transaction from the registrar (with the owners permission). From this CSV, we pulled tip amount, payment method used, and time of day. Our data set ended up being 127 observations. We believe that these samples are representative for two spring Fridays from 7-8, but as we discovered from our preliminary findings, many factors such as day and time and weather affect business as well. Unfortunately, Nathan’s work schedule and Judd and Alex’s class schedules didn't have much overlap to get differing statistics. While our study’s external validity may be weak to other times, and days of the week and year, we can still make powerful conclusions about customer behavior. 
+
+We used our data to conduct a t-test and construct a box plot comparing gender and price, and an ANOVA test to see if age and money spent were associated. The ANOVA test’s null hypothesis was that there’s no difference in spending habits based on age. We will be testing at an $\alpha = 0.05$. 
+
+# Results
+
+Firstly, we looked at if gender is a good explanatory variable for how much customers spend. It’s important to note that 64 out of 126 customers were men, which is close to half of all customers in our data set. We see that male average price is higher than the woman (by roughly \$1), but it’s very marginal and statistically insignificant. We also observe that the variance in money spent by women is higher (i.e women spent money in a larger range of values than men). With a $p$-value of 0.88, there’s little to no association between the variable of gender and customers’ totals.
+
+```{r}
+#t.test(price ~ gender, data=data)
+ggplot(data, aes(price, gender, fill = gender)) + geom_boxplot() + scale_fill_brewer(palette = "Set1") + theme(legend.position = "none")
+```
+
+Next, we used an ANOVA model to test if there is a difference between age and price paid. Our results show an F-statistic of F = 3.516 with 2 and 76 degrees of freedom, which gives us a p-value of 0.0346. Because $p < \alpha$, we reject our hypothesis that people of different ages pay the same amount.
+
+We then used a Post-Hoc Tukey test to see which comparison of means are statistically significant. We found that the young-middle prices are statistically significant, with a p-value of 0.0444, showing that there is a significant difference between the prices paid between young and middle-aged people. As for the other tests, the old-middle and young-old variables aren’t statistically significant with p-values of 0.3555 and 0.4454 respectively.
+```{r}
+ggplot(only_card_data, aes(price, age)) + geom_boxplot()
+```
+
+# Discussion
+Our research questions related to how certain variables affected price, and type of payment. We found very compelling evidence that suggested that older customers paid with cash more often. We did not find evidence that suggested that gender had any large effect on money spent at the bakery. We did find evidence that suggested that young people spent less than middle and older folks, and our Tukey post hoc testing suggested that middle aged and old people didn’t have a significant difference in spending. We recommend that business owners of Grin City bakery do not change how they cater or advertise to men and women, but they should consider advertising more to adults or having donuts that suit the tastes of older people.  
+
+```{r, include=FALSE}
+
+# chi-squared?
+print(table(data$age, data$payment_type) %>% proportions(margin = 1))
+
+
+ggplot(only_card_data, aes(time, tip)) + geom_point()
+
+ggplot(only_card_data, aes(age, tip)) + geom_boxplot()
+model1 <- aov(tip_proportion ~ age, data = only_card_data)
+summary(model1)
+
+#keep
+ggplot(only_card_data, aes(age, price)) + geom_boxplot()
+model2 <- aov(price ~ age, data = only_card_data)
+summary(model2)
+
+tukey <- TukeyHSD(model2)
+tukey
+
+#keep
+
+
+
+t.test(data = only_card_data, tip ~ order_time)
+t.test(data = only_card_data, tip_proportion ~ order_time)
+```
+
+
 
 
